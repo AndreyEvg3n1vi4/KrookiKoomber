@@ -3,8 +3,38 @@
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-  mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+  xmlns:vm="using:KrookiKoomer"
+  xmlns:io="using:System.IO"
+  mc:Ignorable="d"
+  d:DesignWidth="400"
+  d:DesignHeight="250"
   x:Class="KrookiKoomer.MainWindow"
-  Title="MainWindow">
-  Welcome to Avalonia!
+  Title="KrookiKoomber"
+  x:DataType="vm:MainWindowViewModel"
+  >
+  <Design.DataContext>
+    <vm:MainWindowViewModel/>
+  </Design.DataContext>
+
+  <Window.KeyBindings>
+    <KeyBinding Gesture="Right" Command="{Binding GoToDirectoryCommand}" />
+    <KeyBinding Gesture="Left" Command="{Binding GoToBackCommand}" />
+  </Window.KeyBindings>
+
+  <Grid RowDefinitions="auto, *">
+    <TextBlock
+     Grid.Row="0"
+     Text="{Binding Di.FullName}"
+     />
+    
+    <TableView
+     Grid.Row="1"
+     ItemsSource="{Binding FileSystemItems}"
+     SelectedItem="{Binding SelectedItem}"
+     >
+     <TableView.Columns>
+      <TableViewColumn Header="Name" x:DataType="io:FileSystemInfo" Binding="{Binding Name}" />
+     </TableView.Columns>
+    </TableView>
+  </Grid>
 </Window>
