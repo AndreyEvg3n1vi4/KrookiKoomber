@@ -9,6 +9,8 @@ using System.IO;
 internal partial class MainWindowViewModel : ObservableObject
 {
 	[ObservableProperty]
+	private Avalonia.Controls.WindowState _isFullScreen;
+	[ObservableProperty]
 	private DirectoryInfo _di;
 	[ObservableProperty]
 	private FileSystemInfo[] _fileSystemItems;
@@ -17,8 +19,12 @@ internal partial class MainWindowViewModel : ObservableObject
 
 	public MainWindowViewModel()
 	{
+		_isFullScreen = Avalonia.Controls.WindowState.Maximized;
 		_di = new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
 		_fileSystemItems = _di.GetFileSystemInfos("*", SearchOption.TopDirectoryOnly);
+
+		if (_fileSystemItems.Length > 0)
+			_selectedItem = _fileSystemItems[0];
 	}
 
 	[RelayCommand]
@@ -28,7 +34,15 @@ internal partial class MainWindowViewModel : ObservableObject
 		{
 			Di = new DirectoryInfo(di.FullName);
 			FileSystemItems = Di.GetFileSystemInfos("*", SearchOption.TopDirectoryOnly);
-			SelectedItem = null;
+
+			if (FileSystemItems.Length > 0)
+			{
+				SelectedItem = FileSystemItems[0];
+			}
+			else
+			{
+				SelectedItem = null;
+			}
 		}
 	}
 
@@ -40,6 +54,27 @@ internal partial class MainWindowViewModel : ObservableObject
 
 		Di = Di.Parent;
 		FileSystemItems = Di.GetFileSystemInfos("*", SearchOption.TopDirectoryOnly);
-		SelectedItem = null;
+
+		if (FileSystemItems.Length > 0)
+		{
+			SelectedItem = FileSystemItems[0];
+		}
+		else
+		{
+			SelectedItem = null;
+		}
+	}
+
+	[RelayCommand]
+	private void SwitchFullScreen()
+	{
+		if (IsFullScreen != Avalonia.Controls.WindowState.FullScreen)
+		{
+			IsFullScreen = Avalonia.Controls.WindowState.FullScreen;
+		}
+		else
+		{
+			IsFullScreen = Avalonia.Controls.WindowState.Maximized;
+		}
 	}
 }

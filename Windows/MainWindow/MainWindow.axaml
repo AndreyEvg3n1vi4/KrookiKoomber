@@ -9,16 +9,18 @@
   d:DesignWidth="400"
   d:DesignHeight="250"
   x:Class="KrookiKoomer.MainWindow"
+  WindowState="{Binding IsFullScreen}"
   Title="KrookiKoomber"
   x:DataType="vm:MainWindowViewModel"
   >
   <Design.DataContext>
     <vm:MainWindowViewModel/>
   </Design.DataContext>
-
+  
   <Window.KeyBindings>
     <KeyBinding Gesture="Right" Command="{Binding GoToDirectoryCommand}" />
     <KeyBinding Gesture="Left" Command="{Binding GoToBackCommand}" />
+    <KeyBinding Gesture="F11" Command="{Binding SwitchFullScreenCommand}" />
   </Window.KeyBindings>
 
   <Grid RowDefinitions="auto, *">
