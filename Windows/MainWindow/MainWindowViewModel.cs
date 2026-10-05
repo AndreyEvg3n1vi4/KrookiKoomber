@@ -23,16 +23,35 @@ internal partial class MainWindowViewModel : ObservableObject
 
 	public MainWindowViewModel()
 	{
-		//Debug.WriteLine($"UI Thread: {Thread.CurrentThread.ManagedThreadId}");
-
 		_isFullScreen = Avalonia.Controls.WindowState.Maximized;
 		_di = new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
-		_fileSystemItems = _di.GetFileSystemInfos("*", SearchOption.TopDirectoryOnly);
 
-		if (_fileSystemItems.Length > 0)
-			_selectedItem = _fileSystemItems[0];
+		FillFileSystemItems();
+		InitWatcher();
+	}
 
-		_watcher = new FileSystemWatcher(_di.FullName)
+	private void FillFileSystemItems()
+	{
+		FileSystemItems = Di.GetFileSystemInfos("*", SearchOption.TopDirectoryOnly);
+
+		SelectedItem = FileSystemItems.Length > 0 ?
+			FileSystemItems[0] : null;
+	}
+
+	private void InitWatcher()
+	{
+		if (_watcher != null)
+		{
+			_watcher.EnableRaisingEvents = false;
+			_watcher.Created -= OnWatcherEventsHandler;
+			_watcher.Deleted -= OnWatcherEventsHandler;
+			_watcher.Renamed -= OnWatcherEventsHandler;
+			_watcher.Changed -= OnWatcherEventsHandler;
+			_watcher.Error -= OnWatcherEventsHandler;
+			_watcher.Dispose();
+		}
+
+		_watcher = new FileSystemWatcher(Di.FullName)
 		{
 			NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite,
 			IncludeSubdirectories = false,
@@ -47,12 +66,15 @@ internal partial class MainWindowViewModel : ObservableObject
 		_watcher.EnableRaisingEvents = true;
 	}
 
-	private void FillFileSystemItems()
+	private void ClearTimer()
 	{
-		FileSystemItems = Di.GetFileSystemInfos("*", SearchOption.TopDirectoryOnly);
+		if (_oneShotTimer is null)
+			return;
 
-		SelectedItem = FileSystemItems.Length > 0 ?
-			FileSystemItems[0] : null;
+		_oneShotTimer.Stop();
+		_oneShotTimer.Elapsed -= TimerShot;
+		_oneShotTimer.Dispose();
+		_oneShotTimer = null;
 	}
 
 	private void OnWatcherEventsHandler(object sender, EventArgs e)
@@ -69,33 +91,31 @@ internal partial class MainWindowViewModel : ObservableObject
 
 	private void TimerShot(object? sender, EventArgs e)
 	{
-		_oneShotTimer!.Stop();
-		_oneShotTimer.Elapsed -= TimerShot;
-		_oneShotTimer.Dispose();
-		_oneShotTimer = null;
-
+		ClearTimer();
 		Dispatcher.UIThread.Post(FillFileSystemItems);
 	}
 
 	[RelayCommand]
-	private void GoToDirectory()
+	private void GoTo(object? back = null)
 	{
-		if (!(SelectedItem is DirectoryInfo di))
-			return;
+		if (back is null)
+		{
+			if (!(SelectedItem is DirectoryInfo di))
+				return;
 
-		Di = new DirectoryInfo(di.FullName);
+			Di = new DirectoryInfo(di.FullName);
+		}
+		else
+		{
+			if (Di.Parent is null)
+				return;
+
+			Di = Di.Parent;
+		}
+
+		ClearTimer();
 		FillFileSystemItems();
-	}
-
-	[RelayCommand]
-	private void GoToBack()
-	{
-		if (Di.Parent is null)
-			return;
-
-		Di = Di.Parent;
-
-		FillFileSystemItems();
+		InitWatcher();
 	}
 
 	[RelayCommand]

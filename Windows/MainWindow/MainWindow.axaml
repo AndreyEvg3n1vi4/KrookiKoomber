@@ -18,8 +18,8 @@
   </Design.DataContext>
   
   <Window.KeyBindings>
-    <KeyBinding Gesture="Right" Command="{Binding GoToDirectoryCommand}" />
-    <KeyBinding Gesture="Left" Command="{Binding GoToBackCommand}" />
+    <KeyBinding Gesture="Right" Command="{Binding GoToCommand}" />
+    <KeyBinding Gesture="Left" Command="{Binding GoToCommand}" CommandParameter="." />
     <KeyBinding Gesture="F11" Command="{Binding SwitchFullScreenCommand}" />
   </Window.KeyBindings>
 
