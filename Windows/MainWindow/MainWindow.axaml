@@ -38,5 +38,17 @@
       <TableViewColumn Header="Name" x:DataType="io:FileSystemInfo" Binding="{Binding Name}" />
      </TableView.Columns>
     </TableView>
+
+    <Border
+      Grid.Row="1"
+      Background="Red"
+      IsVisible="{Binding AccessDenied}"
+      >
+      <TextBlock
+        Text="Доступ закрыт"
+        HorizontalAlignment="Center"
+        VerticalAlignment="Center"
+        />
+    </Border>
   </Grid>
 </Window>

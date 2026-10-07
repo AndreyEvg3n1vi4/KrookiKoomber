@@ -4,9 +4,7 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
-using System.Diagnostics;
 using System.IO;
-using System.Threading;
 
 internal partial class MainWindowViewModel : ObservableObject
 {
@@ -20,14 +18,15 @@ internal partial class MainWindowViewModel : ObservableObject
 	private FileSystemInfo? _selectedItem;
 	private FileSystemWatcher? _watcher;
 	private System.Timers.Timer? _oneShotTimer;
+	[ObservableProperty]
+	private bool _accessDenied;
 
 	public MainWindowViewModel()
 	{
 		_isFullScreen = Avalonia.Controls.WindowState.Maximized;
 		_di = new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
 
-		FillFileSystemItems();
-		InitWatcher();
+		SafeUpdateFileSystemItems();
 	}
 
 	private void FillFileSystemItems()
@@ -38,19 +37,43 @@ internal partial class MainWindowViewModel : ObservableObject
 			FileSystemItems[0] : null;
 	}
 
+	private void ClearFileSystemItems()
+	{
+		FileSystemItems = Array.Empty<FileSystemInfo>();
+		SelectedItem = null;
+	}
+
+	private void SafeUpdateFileSystemItems()
+	{
+		try
+		{
+			FillFileSystemItems();
+			AccessDenied = false;
+		}
+		catch (UnauthorizedAccessException)
+		{
+			AccessDenied = true;
+			ClearFileSystemItems();
+			return;
+		}
+	}
+
+	private void DisposeWatcher()
+	{
+		if (_watcher is null)
+			return;
+
+		_watcher.EnableRaisingEvents = false;
+		_watcher.Created -= OnWatcherEventsHandler;
+		_watcher.Deleted -= OnWatcherEventsHandler;
+		_watcher.Renamed -= OnWatcherEventsHandler;
+		_watcher.Changed -= OnWatcherEventsHandler;
+		_watcher.Error -= OnWatcherEventsHandler;
+		_watcher.Dispose();
+	}
+
 	private void InitWatcher()
 	{
-		if (_watcher != null)
-		{
-			_watcher.EnableRaisingEvents = false;
-			_watcher.Created -= OnWatcherEventsHandler;
-			_watcher.Deleted -= OnWatcherEventsHandler;
-			_watcher.Renamed -= OnWatcherEventsHandler;
-			_watcher.Changed -= OnWatcherEventsHandler;
-			_watcher.Error -= OnWatcherEventsHandler;
-			_watcher.Dispose();
-		}
-
 		_watcher = new FileSystemWatcher(Di.FullName)
 		{
 			NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite,
@@ -83,7 +106,6 @@ internal partial class MainWindowViewModel : ObservableObject
 			return;
 
 		_oneShotTimer = new System.Timers.Timer(TimeSpan.FromSeconds(3));
-
 		_oneShotTimer.Elapsed += TimerShot;
 		_oneShotTimer.AutoReset = false;
 		_oneShotTimer.Start();
@@ -92,7 +114,7 @@ internal partial class MainWindowViewModel : ObservableObject
 	private void TimerShot(object? sender, EventArgs e)
 	{
 		ClearTimer();
-		Dispatcher.UIThread.Post(FillFileSystemItems);
+		Dispatcher.UIThread.Post(SafeUpdateFileSystemItems);
 	}
 
 	[RelayCommand]
@@ -114,8 +136,11 @@ internal partial class MainWindowViewModel : ObservableObject
 		}
 
 		ClearTimer();
-		FillFileSystemItems();
-		InitWatcher();
+		DisposeWatcher();
+		SafeUpdateFileSystemItems();
+
+		if (!AccessDenied)
+			InitWatcher();
 	}
 
 	[RelayCommand]
